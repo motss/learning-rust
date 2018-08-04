@@ -8,8 +8,6 @@ extern crate warp;
 
 use warp::{Filter};
 
-static PORT: i64 = 3000;
-
 #[derive(Serialize, Deserialize)]
 struct Message {
   id: i64,
@@ -17,26 +15,38 @@ struct Message {
   message: String,  
 }
 
+const PORT: u16 = 3000;
+
+fn get() -> impl warp::Reply {
+  let j = Message {
+    id: 8,
+    values: vec![1, 2, 3],
+    message: "Hello, World!".to_owned(),
+  };
+
+  warp::reply::json(&j)
+}
+
 fn main() {
   pretty_env_logger::init();
 
   let get_any = warp::any()
-    .map(|| {
-      let j = Message {
-        id: 8,
-        values: vec![1, 2, 3],
-        message: "Hello, World!".to_owned(),
-      };
-
-      warp::reply::json(&j)
+    .map(get)
+    .with(warp::reply::with::header("x-rust-is-awesome", "true"))
+    .with(warp::log("main::get::any"));
+  let post_any = warp::any()
+    .and(warp::body::json())
+    .map(|msg: Message| {
+      warp::reply::json(&msg)
     })
     .with(warp::reply::with::header("x-rust-is-awesome", "true"))
-    .with(warp::log("get::any"));
+    .with(warp::log("main::post::any"));
 
-  let routes = warp::get(get_any);
+  let routes = warp::get(get_any)
+    .or(warp::post(post_any));
   let server = warp::serve(routes);
 
   println!("Warp running on port {}", &PORT);
 
-  server.run(([127, 0, 0, 1], 3000));
+  server.run(([127, 0, 0, 1], PORT));
 }
