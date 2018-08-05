@@ -6,7 +6,11 @@ extern crate serde;
 extern crate pretty_env_logger;
 extern crate warp;
 
-use warp::{Filter};
+use warp::{
+  body,
+  Filter,
+  reply
+};
 
 #[derive(Serialize, Deserialize)]
 struct Message {
@@ -24,22 +28,28 @@ fn get() -> impl warp::Reply {
     message: "Hello, World!".to_owned(),
   };
 
-  warp::reply::json(&j)
+  reply::json(&j)
 }
 
 fn main() {
   pretty_env_logger::init();
 
-  let get_any = warp::any()
-    .map(get)
-    .with(warp::reply::with::header("x-rust-is-awesome", "true"))
-    .with(warp::log("main::get::any"));
+  let healthcheck = warp::path("healthcheck")
+    .map(|| "OK")
+    .with(warp::log("main::get::healthcheck"));
+  let get_any = healthcheck
+    .or(
+      warp::any()
+        .map(get)
+        .with(reply::with::header("x-rust-is-awesome", "true"))
+        .with(warp::log("main::get::any"))
+    );
   let post_any = warp::any()
-    .and(warp::body::json())
+    .and(body::json())
     .map(|msg: Message| {
-      warp::reply::json(&msg)
+      reply::json(&msg)
     })
-    .with(warp::reply::with::header("x-rust-is-awesome", "true"))
+    .with(reply::with::header("x-rust-is-awesome", "true"))
     .with(warp::log("main::post::any"));
 
   let routes = warp::get(get_any)
