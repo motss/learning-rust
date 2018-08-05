@@ -6,4 +6,4 @@ COPY . .
 
 RUN cargo install
 
-CMD ["learning_rust"]
+CMD ["RUST_LOG=main", "learning_rust"]
